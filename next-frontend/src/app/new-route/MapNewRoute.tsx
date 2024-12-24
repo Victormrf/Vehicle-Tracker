@@ -10,7 +10,7 @@ export type MapNewRouteProps = {
 
 export function MapNewRoute(props: MapNewRouteProps) {
   const { directionsData } = props;
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null!);
   const map = useMap(mapContainerRef);
 
   useEffect(() => {
