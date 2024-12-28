@@ -1,11 +1,19 @@
 "use server";
 
+import { revalidateTag } from "next/cache";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createRouteAction(state: any, formData: FormData) {
   const { sourceId, destinationId } = Object.fromEntries(formData);
 
   const directionsResponse = await fetch(
-    `http://localhost:3000/directions?originId=${sourceId}&destinationId=${destinationId}`
+    `http://localhost:3000/directions?originId=${sourceId}&destinationId=${destinationId}`,
+    {
+      // cache: "force-cache", //default
+      // next: {
+      //   revalidate: 1 * 60 * 60 * 24, // 1 dia
+      // }
+    }
   );
 
   if (!directionsResponse.ok) {
@@ -15,8 +23,8 @@ export async function createRouteAction(state: any, formData: FormData) {
 
   const directionsData = await directionsResponse.json();
 
-  const { start_address: startAddress, end_address: endAddress } =
-    directionsData.routes[0].legs[0];
+  const startAddress = directionsData.routes[0].legs[0].start_address;
+  const endAddress = directionsData.routes[0].legs[0].end_address;
 
   const response = await fetch("http://localhost:3000/routes", {
     method: "POST",
@@ -29,7 +37,7 @@ export async function createRouteAction(state: any, formData: FormData) {
         "place_id:",
         ""
       ),
-      destination_id: directionsData.request.origin.destination_id.replace(
+      destination_id: directionsData.request.destination.place_id.replace(
         "place_id:",
         ""
       ),
@@ -40,6 +48,8 @@ export async function createRouteAction(state: any, formData: FormData) {
     console.error(await response.text());
     return { error: "Failed to create route" };
   }
+
+  revalidateTag("routes");
 
   return { success: true };
 }

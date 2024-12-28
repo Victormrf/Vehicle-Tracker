@@ -4,16 +4,16 @@ import { NewRouteForm } from "./NewRouteForm";
 export async function searchDirections(source: string, destination: string) {
   const [sourceResponse, destinationResponse] = await Promise.all([
     fetch(`http://localhost:3000/places?text=${source}`, {
-      // cache: "force-cache",
+      // cache: "force-cache", //default
       // next: {
-      //   revalidate: 10, //cache for 10 seconds
-      // },
+      //   revalidate: 1 * 60 * 60 * 24, // 1 dia
+      // }
     }),
     fetch(`http://localhost:3000/places?text=${destination}`, {
-      // cache: "force-cache",
+      // cache: "force-cache", //default
       // next: {
-      //   revalidate: 10, //cache for 10 seconds
-      // },
+      //   revalidate: 1 * 60 * 60 * 24, // 1 dia
+      // }
     }),
   ]);
 
@@ -37,7 +37,12 @@ export async function searchDirections(source: string, destination: string) {
 
   const directionsResponse = await fetch(
     `http://localhost:3000/directions?originId=${placeSourceId}&destinationId=${placeDestinationId}`,
-    {}
+    {
+      // cache: "force-cache", //default
+      // next: {
+      //   revalidate: 1 * 60 * 60 * 24, // 1 dia
+      // },
+    }
   );
 
   if (!directionsResponse.ok) {

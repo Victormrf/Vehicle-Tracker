@@ -18,6 +18,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         loader.importLibrary("marker"),
         getCurrentPosition({ enableHighAccuracy: true }),
       ]);
+
       const map = new Map(containerRef.current!, {
         mapId: "8e0a97af9386fef", //theme
         zoom: 15,
@@ -26,6 +27,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
       setMap(map);
     })();
   }, [containerRef]);
+  // }, []);
 
   return map;
 }

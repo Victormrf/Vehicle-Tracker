@@ -1,8 +1,8 @@
 "use client";
 
-import { useMap } from "@/hooks/useMap";
-import { DirectionsData } from "@/utils/model";
 import { useEffect, useRef } from "react";
+import { useMap } from "../../hooks/useMap";
+import { DirectionsData } from "../../utils/models";
 
 export type MapNewRouteProps = {
   directionsData: DirectionsData;
