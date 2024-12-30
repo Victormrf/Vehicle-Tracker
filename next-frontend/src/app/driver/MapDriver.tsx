@@ -30,7 +30,6 @@ export function MapDriver(props: MapDriverProps) {
     socket.disconnected ? socket.connect() : socket.offAny();
 
     socket.on("connect", () => {
-      console.log("connected");
       socket.emit(`client:new-points`, { route_id });
     });
 

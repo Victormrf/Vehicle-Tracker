@@ -5,6 +5,7 @@ import { RoutesService } from '../routes.service';
   cors: {
     origin: '*',
   },
+  transport: ['websocket'],
 })
 export class RoutesDriverGateway {
   constructor(private routesService: RoutesService) {}
