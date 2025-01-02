@@ -7,6 +7,15 @@ type RouteCreatedEevent struct {
 	Directions []Directions `json:"directions"`
 }
 
+func NewRouteCreatedEvent(routeID string, distance int, directions []Directions) *RouteCreatedEevent {
+	return &RouteCreatedEevent{
+		EventName:  "routeCreated",
+		RouteID:    routeID,
+		Distance:   distance,
+		Directions: directions,
+	}
+}
+
 type FreightCalculatedEvent struct {
 	EventName string  `json:"event"`
 	RouteID   string  `json:"id"`
@@ -21,12 +30,24 @@ func NewFreightCalculatedEvent(routeID string, amount float64) *FreightCalculate
 	}
 }
 
+type DeliveryStartedEvent struct {
+	EventName string `json:"event"`
+	RouteID   string `json:"route_id"`
+} 
+
+func NewDeliveryStartedEvent(routeID string) *DeliveryStartedEvent {
+	return &DeliveryStartedEvent{
+		EventName: "DeliveryStarted",
+		RouteID: routeID,
+	}
+}
+
 func RouteCreatedHandler(event *RouteCreatedEevent, routeService *RouteService) (*FreightCalculatedEvent, error) {
 	route := NewRoute(event.RouteID, event.Distance, event.Directions)
 	routeCreated, err := routeService.CreateRoute(route)
 	if err != nil {
 		return nil, err
 	}
-	FreightCalculatedEvent := NewFreightCalculatedEvent(routeCreated.ID, routeCreated.FreightPrice)
-	return FreightCalculatedEvent, nil
+	freightCalculatedEvent := NewFreightCalculatedEvent(routeCreated.ID, routeCreated.FreightPrice)
+	return freightCalculatedEvent, nil
 }
