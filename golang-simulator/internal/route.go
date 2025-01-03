@@ -32,9 +32,20 @@ type FreigthService struct{
 
 }
 
+func NewFreigthService() *FreigthService {
+	return &FreigthService{}
+}
+
 type RouteService struct {
 	mongo *mongo.Client	
 	freigthService *FreigthService
+}
+
+func NewRouteService(mongo *mongo.Client, freigthService *FreigthService) *RouteService {
+	return &RouteService{
+		mongo: mongo,
+		freigthService: freigthService,
+	}
 }
 
 func (rs *RouteService) CreateRoute(route *Route) (*Route, error) {
