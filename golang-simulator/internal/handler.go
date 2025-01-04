@@ -2,15 +2,15 @@ package internal
 
 import "time"
 
-type RouteCreatedEevent struct {
+type RouteCreatedEvent struct {
 	EventName  string       `json:"event"`
 	RouteID    string       `json:"id"`
 	Distance   int          `json:"distance"`
 	Directions []Directions `json:"directions"`
 }
 
-func NewRouteCreatedEvent(routeID string, distance int, directions []Directions) *RouteCreatedEevent {
-	return &RouteCreatedEevent{
+func NewRouteCreatedEvent(routeID string, distance int, directions []Directions) *RouteCreatedEvent {
+	return &RouteCreatedEvent{
 		EventName:  "routeCreated",
 		RouteID:    routeID,
 		Distance:   distance,
@@ -60,7 +60,7 @@ func NewDriverMovedEvent(routeID string, lat float64, lng float64) *DriverMovedE
 	}
 }
 
-func RouteCreatedHandler(event *RouteCreatedEevent, routeService *RouteService) (*FreightCalculatedEvent, error) {
+func RouteCreatedHandler(event *RouteCreatedEvent, routeService *RouteService) (*FreightCalculatedEvent, error) {
 	route := NewRoute(event.RouteID, event.Distance, event.Directions)
 	routeCreated, err := routeService.CreateRoute(route)
 	if err != nil {
