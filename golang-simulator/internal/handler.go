@@ -79,14 +79,13 @@ func DeliveryStartedHandler(event *DeliveryStartedEvent, routeService *RouteServ
 	}
 
 	// 2) Para cada nova direção, devemos enviar um evento de movimentação do motorista
-	driverMovedEvent := NewDriverMovedEvent(route.ID, 0, 0)
-	for _, direction := range route.Directions {
-		driverMovedEvent.RouteID = route.ID
-		driverMovedEvent.Lat = direction.Lat
-		driverMovedEvent.Lng = direction.Lng
-		time.Sleep(time.Second)
-		// 3) Envio dos dados para um canal, onde na outra ponta dele, as infromações serão consumidas pelo Apache Kafka
-		ch <- driverMovedEvent
-	}
+	go func() {
+		for _, direction := range route.Directions {
+			dme := NewDriverMovedEvent(route.ID, direction.Lat, direction.Lng)
+			// 3) Envio dos dados para um canal, onde na outra ponta dele, as infromações serão consumidas pelo Apache Kafka
+			ch <- dme
+			time.Sleep(time.Second)
+		}
+	}()
 	return nil
 }
