@@ -1,3 +1,7 @@
+include:
+  - ../mongodb/docker-compose.yaml
+  - ../Kafka/docker-compose.yaml
+
 services:
   nest:
     build: .
@@ -5,10 +9,3 @@ services:
       - .:/home/node/app
     ports:
       - 3000:3000
-  mongo:
-    build: ./.docker/mongodb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
-    ports:
-      - 27017:27017

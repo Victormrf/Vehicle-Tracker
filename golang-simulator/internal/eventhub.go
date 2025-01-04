@@ -58,7 +58,6 @@ func (eh *EventHub) HandleEvent(msg []byte) error {
 	default: 
 		return errors.New("Unknown event")
 	}
-	return nil
 }
 
 func (eh *EventHub) handleRouteCreated(event RouteCreatedEvent) error {
