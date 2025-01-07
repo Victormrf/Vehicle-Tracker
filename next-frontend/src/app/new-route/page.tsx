@@ -42,7 +42,7 @@ export async function searchDirections(source: string, destination: string) {
       // next: {
       //   revalidate: 1 * 60 * 60 * 24, // 1 dia
       // },
-    }
+    },
   );
 
   if (!directionsResponse.ok) {

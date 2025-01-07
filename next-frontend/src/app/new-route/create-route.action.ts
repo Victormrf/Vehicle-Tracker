@@ -13,7 +13,7 @@ export async function createRouteAction(state: any, formData: FormData) {
       // next: {
       //   revalidate: 1 * 60 * 60 * 24, // 1 dia
       // }
-    }
+    },
   );
 
   if (!directionsResponse.ok) {
@@ -35,11 +35,11 @@ export async function createRouteAction(state: any, formData: FormData) {
       name: `${startAddress} - ${endAddress}`,
       source_id: directionsData.request.origin.place_id.replace(
         "place_id:",
-        ""
+        "",
       ),
       destination_id: directionsData.request.destination.place_id.replace(
         "place_id:",
-        ""
+        "",
       ),
     }),
   });

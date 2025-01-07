@@ -51,7 +51,7 @@ export function MapDriver(props: MapDriverProps) {
           });
         }
         map.moveCar(data.route_id, { lat: data.lat, lng: data.lng });
-      }
+      },
     );
     return () => {
       socket.disconnect();
