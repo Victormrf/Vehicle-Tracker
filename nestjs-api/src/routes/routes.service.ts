@@ -1,14 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { DirectionsService } from 'src/maps/directions/directions.service';
+import * as kafkaLib from '@confluentinc/kafka-javascript';
 
 @Injectable()
 export class RoutesService {
   constructor(
     private prismaService: PrismaService,
     private directionsService: DirectionsService,
+    @Inject('KAFKA_PRODUCER') private KafkaProducer: kafkaLib.KafkaJS.Producer,
   ) {}
 
   async create(CreateRouteDto: CreateRouteDto) {
@@ -20,7 +22,7 @@ export class RoutesService {
 
     const legs = routes[0].legs[0];
 
-    return this.prismaService.route.create({
+    const route = await this.prismaService.route.create({
       data: {
         name: CreateRouteDto.name,
         source: {
@@ -49,6 +51,33 @@ export class RoutesService {
         ),
       },
     });
+
+    await this.KafkaProducer.send({
+      topic: 'route',
+      messages: [
+        {
+          key: route.id.toString(),
+          value: JSON.stringify({
+            event: 'route_created',
+            id: route.id,
+            distance: legs.distance.value,
+            directions: legs.steps.reduce((acc, step) => {
+              acc.push({
+                let: step.start_location.lat,
+                lng: step.start_location.lng,
+              });
+              acc.push({
+                let: step.end_location.lat,
+                lng: step.end_location.lng,
+              });
+              return acc;
+            }, []),
+          }),
+        },
+      ],
+    });
+
+    return route;
   }
 
   findAll() {
@@ -61,8 +90,11 @@ export class RoutesService {
     });
   }
 
-  update(id: number, updateRouteDto: UpdateRouteDto) {
-    return `This action updates a #${id} route`;
+  update(id: string, updateRouteDto: UpdateRouteDto) {
+    return this.prismaService.route.update({
+      where: { id },
+      data: updateRouteDto,
+    });
   }
 
   remove(id: number) {

@@ -32,7 +32,7 @@ export class RoutesController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRouteDto: UpdateRouteDto) {
-    return this.routesService.update(+id, updateRouteDto);
+    return this.routesService.update(id, updateRouteDto);
   }
 
   @Delete(':id')

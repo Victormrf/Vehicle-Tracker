@@ -5,10 +5,11 @@ import { MapsModule } from 'src/maps/maps.module';
 import { RoutesDriverService } from './routes-driver/routes-driver.service';
 import { RoutesDriverGateway } from './routes-driver/routes-driver.gateway';
 import { KafkaModule } from 'src/kafka/kafka.module';
+import { RoutesConsumer } from './routes.consumer';
 
 @Module({
   imports: [MapsModule, KafkaModule],
-  controllers: [RoutesController],
+  controllers: [RoutesController, RoutesConsumer],
   providers: [RoutesService, RoutesDriverService, RoutesDriverGateway],
 })
 export class RoutesModule {}
