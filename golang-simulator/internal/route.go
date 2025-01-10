@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"math"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,74 +15,69 @@ type Directions struct {
 }
 
 type Route struct {
-	ID string `bson:"_id" json:"id"`
-	Distance int `bson:"distance" json:"distance"`
-	Directions []Directions `bson:"directions" json:"directions"`
-	FreightPrice float64 `bson:"freight_price" json:"freight_price"`
+	ID           string       `bson:"_id" json:"id"`
+	Distance     int          `bson:"distance" json:"distance"`
+	Directions   []Directions `bson:"directions" json:"directions"`
+	FreightPrice float64      `bson:"freight_price" json:"freight_price"`
 }
 
-func NewRoute(id string, distance int, directions []Directions) *Route {
-	return &Route{
-		ID: id,
-		Distance: distance,
+func NewRoute(id string, distance int, directions []Directions) Route {
+	return Route{
+		ID:         id,
+		Distance:   distance,
 		Directions: directions,
 	}
 }
 
-type FreigthService struct{
-
-}
-
-func NewFreigthService() *FreigthService {
-	return &FreigthService{}
-}
-
 type RouteService struct {
-	mongo *mongo.Client	
-	freigthService *FreigthService
+	mongo          *mongo.Client
+	FreightService *FreightService
 }
 
-func NewRouteService(mongo *mongo.Client, freigthService *FreigthService) *RouteService {
+func NewRouteService(mongo *mongo.Client, freightService *FreightService) *RouteService {
 	return &RouteService{
-		mongo: mongo,
-		freigthService: freigthService,
+		mongo:          mongo,
+		FreightService: freightService,
 	}
 }
 
-func (rs *RouteService) CreateRoute(route *Route) (*Route, error) {
-	route.FreightPrice = rs.freigthService.CalculateFreight(route.Distance)
+type FreightService struct{}
+
+func NewFreightService() *FreightService {
+	return &FreightService{}
+}
+
+func (fs *FreightService) Calculate(distance int) float64 {
+	return math.Floor((float64(distance)*0.15+0.3)*100) / 100
+}
+
+func (rs *RouteService) CreateRoute(route Route) (Route, error) {
+	freightCost := rs.FreightService.Calculate(route.Distance)
+	route.FreightPrice = freightCost
+	fmt.Printf("Calculated freight cost: %.2f\n", freightCost)
 
 	update := bson.M{
 		"$set": bson.M{
-			"distance": route.Distance,
-			"directions": route.Directions,
-			"freight_price": route.FreightPrice,
+			"distance":      route.Distance,
+			"directions":    route.Directions,
+			"freight_price": freightCost,
 		},
 	}
-	
-	filter := bson.M{"_id": route.ID}
-	opts := options.Update().SetUpsert(true) // se o registro não existir, ele será criado
-	
-	_, err := rs.mongo.Database("routes").Collection("routes").UpdateOne(nil, filter, update, opts)
-	if err != nil {
-		return nil, err
-	}
-	
-	return route, err
-}
 
-func (fs *FreigthService) CalculateFreight(distance int) float64 {
-	
-	return math.Floor((float64(distance) * 0.15 + 0.3)*100)/100
+	filter := bson.M{"_id": route.ID}
+
+	// Upsert option to insert if not exists
+	opts := options.Update().SetUpsert(true)
+
+	_, err := rs.mongo.Database("routes").Collection("routes").UpdateOne(nil, filter, update, opts)
+
+	return route, err
 }
 
 func (rs *RouteService) GetRoute(id string) (Route, error) {
 	var route Route
 	filter := bson.M{"_id": id}
 	err := rs.mongo.Database("routes").Collection("routes").FindOne(nil, filter).Decode(&route)
-	if err != nil {
-		return Route{}, err
-	}
-
+	fmt.Printf("Found route: %+v\n", route)
 	return route, err
 }

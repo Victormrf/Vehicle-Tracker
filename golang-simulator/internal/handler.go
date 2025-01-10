@@ -1,6 +1,10 @@
 package internal
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 type RouteCreatedEvent struct {
 	EventName  string       `json:"event"`
@@ -11,7 +15,7 @@ type RouteCreatedEvent struct {
 
 func NewRouteCreatedEvent(routeID string, distance int, directions []Directions) *RouteCreatedEvent {
 	return &RouteCreatedEvent{
-		EventName:  "routeCreated",
+		EventName:  "RouteCreated",
 		RouteID:    routeID,
 		Distance:   distance,
 		Directions: directions,
@@ -20,13 +24,13 @@ func NewRouteCreatedEvent(routeID string, distance int, directions []Directions)
 
 type FreightCalculatedEvent struct {
 	EventName string  `json:"event"`
-	RouteID   string  `json:"id"`
+	RouteID   string  `json:"route_id"`
 	Amount    float64 `json:"amount"`
 }
 
 func NewFreightCalculatedEvent(routeID string, amount float64) *FreightCalculatedEvent {
 	return &FreightCalculatedEvent{
-		EventName: "freightCalculated",
+		EventName: "FreightCalculated",
 		RouteID:   routeID,
 		Amount:    amount,
 	}
@@ -60,31 +64,26 @@ func NewDriverMovedEvent(routeID string, lat float64, lng float64) *DriverMovedE
 	}
 }
 
-func RouteCreatedHandler(event *RouteCreatedEvent, routeService *RouteService) (*FreightCalculatedEvent, error) {
+func RouteCreatedHandler(event *RouteCreatedEvent, routeService *RouteService, mongoClient *mongo.Client) (*FreightCalculatedEvent, error) {
 	route := NewRoute(event.RouteID, event.Distance, event.Directions)
 	routeCreated, err := routeService.CreateRoute(route)
 	if err != nil {
 		return nil, err
 	}
-	freightCalculatedEvent := NewFreightCalculatedEvent(routeCreated.ID, routeCreated.FreightPrice)
-	return freightCalculatedEvent, nil
+	return NewFreightCalculatedEvent(routeCreated.ID, routeCreated.FreightPrice), nil
 }
 
-func DeliveryStartedHandler(event *DeliveryStartedEvent, routeService *RouteService, ch chan *DriverMovedEvent) error {
-	// 1) Devemos consultar a rota atraves do ID informado no evento
-	// - Dessa forma teremos acesso às posições necessárias para a movimentação do motorista
+func DeliveryStartedHandler(event *DeliveryStartedEvent, routeService *RouteService, mongoClient *mongo.Client, ch chan *DriverMovedEvent) error {
 	route, err := routeService.GetRoute(event.RouteID)
 	if err != nil {
 		return err
 	}
 
-	// 2) Para cada nova direção, devemos enviar um evento de movimentação do motorista
 	go func() {
 		for _, direction := range route.Directions {
 			dme := NewDriverMovedEvent(route.ID, direction.Lat, direction.Lng)
-			// 3) Envio dos dados para um canal, onde na outra ponta dele, as infromações serão consumidas pelo Apache Kafka
 			ch <- dme
-			time.Sleep(time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}()
 	return nil

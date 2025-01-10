@@ -22,46 +22,53 @@ func main() {
 
 	mongoConnection, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoURI))
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	freigthService := internal.NewFreigthService()
-	routeService := internal.NewRouteService(mongoConnection, freigthService)
+	freightService := internal.NewFreightService()
+	routeService := internal.NewRouteService(mongoConnection, freightService)
 
 	chDriverMoved := make(chan *internal.DriverMovedEvent)
+	chFreightCalculated := make(chan *internal.FreightCalculatedEvent)
 
 	freightWriter := &kafka.Writer{
-		Addr: kafka.TCP(kafkaBroker),
-		Topic: kafkaFreightTopic,
+		Addr:     kafka.TCP(kafkaBroker),
+		Topic:    kafkaFreightTopic,
+		Balancer: &kafka.LeastBytes{},
+	}
+	simulationWriter := &kafka.Writer{
+		Addr:     kafka.TCP(kafkaBroker),
+		Topic:    kafkaSimulationTopic,
 		Balancer: &kafka.LeastBytes{},
 	}
 
-	simulatorWriter := &kafka.Writer{
-		Addr: kafka.TCP(kafkaBroker),
-		Topic: kafkaSimulationTopic,
-		Balancer: &kafka.LeastBytes{},
-	}
+	hub := internal.NewEventHub(
+		routeService,
+		mongoConnection,
+		chDriverMoved,
+		chFreightCalculated,
+		freightWriter,
+		simulationWriter,
+	)
 
 	routeReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{kafkaBroker},
-		Topic:    kafkaRouteTopic,
-		GroupID:  kafkaGroupID,
+		Brokers: []string{kafkaBroker},
+		Topic:   kafkaRouteTopic,
+		GroupID: kafkaGroupID,
 	})
 
-	hub := internal.NewEventHub(routeService, mongoConnection, chDriverMoved, freightWriter, simulatorWriter)
+	fmt.Println("Consuming events from 'route' topic...")
 
-	fmt.Println("Starting simulator")
 	for {
 		m, err := routeReader.ReadMessage(context.Background())
 		if err != nil {
-			log.Printf("error reading message: %v", err)
+			log.Printf("Error reading message: %v\n", err)
 			continue
 		}
 
 		go func(msg []byte) {
-			err = hub.HandleEvent(m.Value)
-			if err != nil {
-				log.Printf("error handling event: %v", err)
+			if err := hub.HandleEvent(msg); err != nil {
+				log.Printf("Error handling event: %v\n", err)
 			}
 		}(m.Value)
 	}
