@@ -19,7 +19,8 @@ Content-Type: application/json
     "source_id": "{{originId}}",
     "destination_id": "{{destinationId}}"
 }
-
+###
+POST http://localhost:3000/routes/677f62903136f81f3b29ef3c/start
 ###
 GET http://localhost:3000/routes
 

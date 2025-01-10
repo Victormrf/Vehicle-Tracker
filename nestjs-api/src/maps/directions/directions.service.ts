@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   DirectionsRequest,
-  Client as googleMapsClient,
+  Client as GoogleMapsClient,
   TravelMode,
 } from '@googlemaps/google-maps-services-js';
 import { ConfigService } from '@nestjs/config';
@@ -9,10 +9,9 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class DirectionsService {
   constructor(
-    private googleMapsClient: googleMapsClient,
+    private googleMapsClient: GoogleMapsClient,
     private configService: ConfigService,
   ) {}
-
   async getDirections(originId: string, destinationId: string) {
     const requestParams: DirectionsRequest['params'] = {
       origin: `place_id:${originId}`,

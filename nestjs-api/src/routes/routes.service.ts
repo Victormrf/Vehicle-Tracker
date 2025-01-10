@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { DirectionsService } from 'src/maps/directions/directions.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { DirectionsService } from '../maps/directions/directions.service';
 import * as kafkaLib from '@confluentinc/kafka-javascript';
 
 @Injectable()
@@ -10,21 +10,21 @@ export class RoutesService {
   constructor(
     private prismaService: PrismaService,
     private directionsService: DirectionsService,
-    @Inject('KAFKA_PRODUCER') private KafkaProducer: kafkaLib.KafkaJS.Producer,
+    @Inject('KAFKA_PRODUCER') private kafkaProducer: kafkaLib.KafkaJS.Producer,
   ) {}
 
-  async create(CreateRouteDto: CreateRouteDto) {
+  async create(createRouteDto: CreateRouteDto) {
+    console.log(createRouteDto);
     const { available_travel_modes, geocoded_waypoints, routes, request } =
       await this.directionsService.getDirections(
-        CreateRouteDto.source_id,
-        CreateRouteDto.destination_id,
+        createRouteDto.source_id,
+        createRouteDto.destination_id,
       );
 
     const legs = routes[0].legs[0];
-
     const route = await this.prismaService.route.create({
       data: {
-        name: CreateRouteDto.name,
+        name: createRouteDto.name,
         source: {
           name: legs.start_address,
           location: {
@@ -52,22 +52,22 @@ export class RoutesService {
       },
     });
 
-    await this.KafkaProducer.send({
+    await this.kafkaProducer.send({
       topic: 'route',
       messages: [
         {
-          key: route.id.toString(),
           value: JSON.stringify({
-            event: 'route_created',
+            event: 'RouteCreated',
             id: route.id,
             distance: legs.distance.value,
             directions: legs.steps.reduce((acc, step) => {
               acc.push({
-                let: step.start_location.lat,
+                lat: step.start_location.lat,
                 lng: step.start_location.lng,
               });
+
               acc.push({
-                let: step.end_location.lat,
+                lat: step.end_location.lat,
                 lng: step.end_location.lng,
               });
               return acc;
@@ -78,6 +78,24 @@ export class RoutesService {
     });
 
     return route;
+  }
+
+  async startRoute(id: string) {
+    await this.prismaService.route.findUniqueOrThrow({
+      where: { id },
+    });
+
+    await this.kafkaProducer.send({
+      topic: 'route',
+      messages: [
+        {
+          value: JSON.stringify({
+            event: 'DeliveryStarted',
+            route_id: id,
+          }),
+        },
+      ],
+    });
   }
 
   findAll() {
